@@ -13,13 +13,13 @@ Gem::Specification.new do |spec|
   spec.email       = ["brunotporto@gmail.com"]
   spec.homepage    = "https://github.com/brunoporto/rails-importer"
   spec.summary     = "Rails Importer"
-  spec.description = "Rails Importer"
+  spec.description = "Rails Importer (CSV, XLS, XML)"
   spec.license     = "MIT"
 
   spec.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
 
-  spec.add_dependency 'rails', ['>= 3','<= 6']
-  spec.add_dependency 'spreadsheet', '~> 0'
+  spec.add_dependency 'rails', ['>= 3','< 6']
+  spec.add_dependency 'spreadsheet', '~> 1.1', '>= 1.1.4'
 
   # s.add_development_dependency "sqlite3"
 end

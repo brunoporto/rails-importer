@@ -1,0 +1,18 @@
+class <%= @importer_name %>Importer < RailsImporter::Base
+
+  importer do
+    fields :name, :email, :age
+    each_record do |record, params|
+      MyModel.find_or_create_by(name: record[:name], email: record[:email], age: record[:age])
+    end
+  end
+
+  # importer :simple do
+  #   xml_structure :root, :row
+  #   fields :name, :email, :age
+  #   each_record do |record, params|
+  #       ...
+  #   end
+  # end
+
+end

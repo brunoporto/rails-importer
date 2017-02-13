@@ -1,0 +1,4 @@
+en:
+  importer:
+    error:
+      invalid_file_type: "Invalid file type allowed: %{file_types}"

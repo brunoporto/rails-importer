@@ -125,7 +125,11 @@ module RailsImporter
 
       def importer_value(key, attributes)
         if attributes.present?
-          self.importers[@importer_name][key] = attributes
+          if key==:fields
+            self.importers[@importer_name][key] = (attributes.first.is_a?(Hash) ? attributes.inject(:merge) : attributes)
+          else
+            self.importers[@importer_name][key] = attributes
+          end
         else
           self.importers[@importer_name][key]
         end

@@ -30,8 +30,12 @@ class ExampleImporter < RailsImporter::Base
 
   importer do
     fields :name, :email, :age
+    #or fields({:name => "Name", :email => "E-mail", :age => "Idade"})
     each_record do |record, params|
+    
       MyModel.find_or_create_by(name: record[:name], email: record[:email], age: record[:age])
+      
+      return record # or return wherever
     end
   end
   

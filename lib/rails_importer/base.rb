@@ -37,7 +37,7 @@ module RailsImporter
       #   end
       # end
 
-      def importer(name=:default, &block)
+      def importer(name = :default, &block)
         (self.importers ||= {})[name] ||= {fields: [], xml_structure: [:records, :record], each_record: nil}
         @importer_name = name
         block.call if block_given?
@@ -57,19 +57,19 @@ module RailsImporter
       end
 
       private
-      def import_from_csv(file, context=:default)
+      def import_from_csv(file, context = :default)
         records = []
         line = 0
         CSV.foreach(file.path, {:headers => false, :col_sep => ';', :force_quotes => true}) do |row|
-          if line>0
+          if line > 0
             records << object_values(row, context) unless array_blank?(row)
           end
-          line+=1
+          line += 1
         end
         records
       end
 
-      def import_from_xml(file, context=:default)
+      def import_from_xml(file, context = :default)
         records = []
         xml_structure = self.importers[context][:xml_structure]
         xml = Hash.from_xml(file.read)
@@ -82,50 +82,50 @@ module RailsImporter
         records
       end
 
-      def import_from_xls(file, context=:default)
+      def import_from_xls(file, context = :default)
         records = []
         Spreadsheet.client_encoding = 'UTF-8'
         document = Spreadsheet.open(file.path)
         spreadsheet = document.worksheet 0
         spreadsheet.each_with_index do |row, i|
-          next unless i>0
+          next if i.zero?
           records << object_values(row, context) unless array_blank?(row)
         end
         records
       end
 
-      def object_values(array, context=:default)
+      def object_values(array, context = :default)
         attributes = self.importers[context][:fields]
         attributes = attributes.keys if attributes.is_a?(Hash)
         args = array[0...attributes.size]
-        hValues = Hash[attributes.zip(args)]
+        hash_values = Hash[attributes.zip(args)]
         attributes.each do |attr|
-          if hValues[attr].present?
-            if hValues[attr].is_a?(Numeric)
-              hValues[attr] = hValues[attr].to_i if hValues[attr].modulo(1).zero?
-              hValues[attr] = (hValues[attr].to_s.strip rescue '#ERRO AO CONVERTER NUMERO PARA TEXTO')
-            elsif hValues[attr].is_a?(Date)
-              hValues[attr] = (I18n.l(hValues[attr], format: '%d/%m/%Y') rescue hValues[attr]).to_s
-            elsif hValues[attr].is_a?(DateTime)
-              hValues[attr] = (I18n.l(hValues[attr], format: '%d/%m/%Y %H:%i:%s') rescue hValues[attr]).to_s
+          if hash_values[attr].present?
+            if hash_values[attr].is_a?(Numeric)
+              hash_values[attr] = hash_values[attr].to_i if hash_values[attr].modulo(1).zero?
+              hash_values[attr] = (hash_values[attr].to_s.strip rescue '#ERRO AO CONVERTER NUMERO PARA TEXTO')
+            elsif hash_values[attr].is_a?(Date)
+              hash_values[attr] = (I18n.l(hash_values[attr], format: '%d/%m/%Y') rescue hash_values[attr]).to_s
+            elsif hash_values[attr].is_a?(DateTime)
+              hash_values[attr] = (I18n.l(hash_values[attr], format: '%d/%m/%Y %H:%i:%s') rescue hash_values[attr]).to_s
             else
               #PARA QUALQUER OUTRO VALOR, FORÇA CONVERTER PARA STRING
-              hValues[attr] = (hValues[attr].to_s.strip rescue '')
+              hash_values[attr] = (hash_values[attr].to_s.strip rescue '')
             end
           else
-            hValues[attr] = ''
+            hash_values[attr] = ''
           end
         end
-        OpenStruct.new(hValues)
+        OpenStruct.new(hash_values)
       end
 
       def array_blank?(array)
-        array.all? {|i|i.nil? or i==''}
+        array.all?(&:blank?)
       end
 
       def importer_value(key, attributes)
         if attributes.present?
-          if key==:fields
+          if key == :fields
             self.importers[@importer_name][key] = (attributes.first.is_a?(Hash) ? attributes.inject(:merge) : attributes)
           else
             self.importers[@importer_name][key] = attributes

@@ -8,18 +8,23 @@ module RailsImporter
     class << self
       def import(file, *args)
         context = args.try(:context) || :default
+        custom_fields = args.try(:fields) || nil
         result = []
         begin
-          ext = (File.extname(file.path)[1..-1] rescue nil)
-          if file.respond_to?(:path) and self.file_types.include?(ext.to_sym)
-            rows = self.send("import_from_#{ext}", file)
-            if rows.present? and rows.is_a?(Array)
-              result = rows.map do |record|
-                self.importers[context][:each_record].call(record, *args) if self.importers[context][:each_record].is_a?(Proc)
-              end.compact
+          if file.respond_to?(:path)
+            ext = (File.extname(file.path)[1..-1] rescue '')
+            if self.file_types.include?(ext.to_sym)
+              rows = self.send('import_from_%s' % ext, file, context, custom_fields)
+              if rows.present? && rows.is_a?(Array)
+                result = rows.map do |record|
+                  self.importers[context][:each_record].call(record, *args) if self.importers[context][:each_record].is_a?(Proc)
+                end.compact
+              end
+            else
+              result = I18n.t(:invalid_file_type, file_types: self.file_types.join(', '), scope: [:importer, :error])
             end
           else
-            I18n.t(:invalid_file_type, file_types: self.file_types.join(', '), scope: [:importer, :error])
+            result = I18n.t(:invalid_file, file_types: self.file_types.join(', '), scope: [:importer, :error])
           end
         rescue Exception => e
           result = e.message
@@ -57,19 +62,19 @@ module RailsImporter
       end
 
       private
-      def import_from_csv(file, context = :default)
+      def import_from_csv(file, context = :default, custom_fields = :nil)
         records = []
         line = 0
         CSV.foreach(file.path, {:headers => false, :col_sep => ';', :force_quotes => true}) do |row|
           if line > 0
-            records << object_values(row, context) unless array_blank?(row)
+            records << object_values(row, context, custom_fields) unless array_blank?(row)
           end
           line += 1
         end
         records
       end
 
-      def import_from_xml(file, context = :default)
+      def import_from_xml(file, context = :default, custom_fields = :nil)
         records = []
         xml_structure = self.importers[context][:xml_structure]
         xml = Hash.from_xml(file.read)
@@ -77,28 +82,28 @@ module RailsImporter
           xml = xml[node.to_s]
         end
         xml.each do |elem|
-          records << object_values(elem.values, context) unless array_blank?(elem.values)
+          records << object_values(elem.values, context, custom_fields) unless array_blank?(elem.values)
         end
         records
       end
 
-      def import_from_xls(file, context = :default)
+      def import_from_xls(file, context = :default, custom_fields = :nil)
         records = []
         Spreadsheet.client_encoding = 'UTF-8'
         document = Spreadsheet.open(file.path)
         spreadsheet = document.worksheet 0
         spreadsheet.each_with_index do |row, i|
           next if i.zero?
-          records << object_values(row, context) unless array_blank?(row)
+          records << object_values(row, context, custom_fields) unless array_blank?(row)
         end
         records
       end
 
-      def object_values(array, context = :default)
-        attributes = self.importers[context][:fields]
+      def object_values(array, context = :default, custom_fields = nil)
+        attributes = custom_fields || self.importers[context][:fields]
         attributes = attributes.keys if attributes.is_a?(Hash)
-        args = array[0...attributes.size]
-        hash_values = Hash[attributes.zip(args)]
+        values = equalize_columns_of_values(attributes, array)
+        hash_values = Hash[attributes.zip(values)]
         attributes.each do |attr|
           if hash_values[attr].present?
             if hash_values[attr].is_a?(Numeric)
@@ -126,7 +131,7 @@ module RailsImporter
       def importer_value(key, attributes)
         if attributes.present?
           if key == :fields
-            self.importers[@importer_name][key] = (attributes.first.is_a?(Hash) ? attributes.inject(:merge) : attributes)
+            self.importers[@importer_name][key] = normalize_fields(attributes)
           else
             self.importers[@importer_name][key] = attributes
           end
@@ -134,6 +139,28 @@ module RailsImporter
           self.importers[@importer_name][key]
         end
       end
+
+      def normalize_fields(attributes)
+        if attributes.first.is_a?(Hash)
+          attributes.inject(:merge)
+        elsif attributes.first.is_a?(Array)
+          attributes.flatten
+        else
+          attributes
+        end
+      end
+
+      def equalize_columns_of_values(attributes, values=[])
+        if attributes.size > values.size
+          diff_size = (attributes.size - values.size).abs
+          values + Array.new(diff_size, nil)
+        elsif attributes.size < values.size
+          values[0...attributes.size]
+        else
+          values
+        end
+      end
+
     end
 
   end

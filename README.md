@@ -53,14 +53,68 @@ end
 ### How to use
 
 You can call `import` from **Importers** objects: 
-```erb
+**file param** must be an object that responds to `.path` method
+```ruby
     file = params[:import][:file]
-    records = ExampleImporter.import(file, extra_param: 'Extra')
+    records = ExampleImporter.import(file)
 ```
 
 Or with context:
-
-```erb
+```ruby
     file = params[:import][:file]
-    records = ExampleImporter.import(file, context: :simple, extra_param: 'Extra')
+    records = ExampleImporter.import(file, context: :simple)
+```
+
+With custom fields:
+```ruby
+    file = params[:import][:file]
+    records = ExampleImporter.import(file, fields: [:name, :email, :age])
+```
+
+With extra params:
+```ruby
+    file = params[:import][:file]
+    records = ExampleImporter.import(file, {user: 'john@mail.com'})
+```
+Then inside each record you can get params:
+```ruby
+class ExampleImporter < RailsImporter::Base
+  importer do
+    # ...
+    each_record do |record, params|
+      # ...
+      params[:user]
+      # ...
+    end
+    # ...
+  end
+end
+```
+
+With full options:
+```ruby
+    file = params[:import][:file]
+    records = ExampleImporter.import(file,
+      context: :simple,
+      fields: [:name, :email, :age],
+      {user: 'john@mail.com', account: '1'})
+```
+
+To return imported values, you need to return values inside of `each_record`:
+```ruby
+class ExampleImporter < RailsImporter::Base
+  importer do
+    # ...
+    each_record do |record, params|
+      # ...
+      u = Model.new(record)
+      u.created_by = params[:user]
+      ok = !!u.save
+      return {record: u, success: ok}
+    end
+    # ...
+  end
+end
+records = ExampleImporter.import(file, {user: 'john@mail.com'})
+# [{record: ..., success: true}, {record: ..., success: false}]
 ```

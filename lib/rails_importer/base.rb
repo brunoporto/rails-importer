@@ -108,7 +108,7 @@ module RailsImporter
           if hash_values[attr].present?
             if hash_values[attr].is_a?(Numeric)
               hash_values[attr] = hash_values[attr].to_i if hash_values[attr].modulo(1).zero?
-              hash_values[attr] = (hash_values[attr].to_s.strip rescue '#ERRO AO CONVERTER NUMERO PARA TEXTO')
+              hash_values[attr] = (hash_values[attr].to_s.strip rescue I18n.t(:convert_number_to_text, scope: [:importer, :error]))
             elsif hash_values[attr].is_a?(Date)
               hash_values[attr] = (I18n.l(hash_values[attr], format: '%d/%m/%Y') rescue hash_values[attr]).to_s
             elsif hash_values[attr].is_a?(DateTime)

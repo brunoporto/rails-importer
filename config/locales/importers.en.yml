@@ -3,3 +3,5 @@ en:
     error:
       invalid_file: "Invalid File instance."
       invalid_file_type: "Invalid file type allowed: %{file_types}"
+      convert_number_to_text: "Error when convert number to text"
+      

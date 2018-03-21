@@ -24,7 +24,7 @@ module RailsImporter
               result = I18n.t(:invalid_file_type, file_types: self.file_types.join(', '), scope: [:importer, :error])
             end
           else
-            result = I18n.t(:invalid_file, file_types: self.file_types.join(', '), scope: [:importer, :error])
+            result = I18n.t(:invalid_file, scope: [:importer, :error])
           end
         rescue Exception => e
           result = e.message

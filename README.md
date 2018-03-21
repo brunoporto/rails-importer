@@ -65,7 +65,7 @@ Or with context:
     records = ExampleImporter.import(file, context: :simple)
 ```
 
-With custom fields:
+Overwrite default fields (called in the block `importer do`):
 ```ruby
     file = params[:import][:file]
     records = ExampleImporter.import(file, fields: [:name, :email, :age])

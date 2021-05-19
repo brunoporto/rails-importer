@@ -143,16 +143,10 @@ module RailsImporter
         array.all?(&:blank?)
       end
 
-      def importer_value(key, attributes)
-        if attributes.present?
-          if key == :fields
-            self.importers[@importer_name][key] = normalize_fields(attributes)
-          else
-            self.importers[@importer_name][key] = attributes
-          end
-        else
-          self.importers[@importer_name][key]
-        end
+      def importer_value(key, attributes=nil)
+        return self.importers[@importer_name][key] if attributes.nil?
+        attributes = normalize_fields(attributes) if key == :fields
+        self.importers[@importer_name][key] = attributes
       end
 
       def normalize_fields(attributes)

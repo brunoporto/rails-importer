@@ -78,12 +78,16 @@ module RailsImporter
       private
       def import_from_csv(file, context = :default, custom_fields = :nil, params: nil)
         records = []
-        line = 0
-        CSV.foreach(file.path, {:headers => false, :col_sep => ';', :force_quotes => true}) do |row|
-          if line > 0
-            records << object_values(row, context, custom_fields) unless array_blank?(row)
+        first_line = nil
+        csv_params = {headers: false, col_sep: ';', force_quotes: true}
+        csv_params = csv_params.merge(params) if params.present? && params.is_a?(Hash)
+        CSV.foreach(file.path, csv_params) do |row|
+          # Skip headers
+          if first_line.nil?
+            first_line = row
+            next
           end
-          line += 1
+          records << object_values(row, context, custom_fields) unless array_blank?(row)
         end
         records
       end

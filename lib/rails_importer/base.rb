@@ -63,13 +63,9 @@ module RailsImporter
       end
 
       def csv_params(*attributes)
-        binding.pry
-        options = self.importers[context][:csv_params]
-        if attributes.size > 0
-          params = attributes.first 
-          options = options.merge(params) if params.is_a?(Hash)
-        end
-        binding.pry
+        options = self.importers[@importer_name][:csv_params]
+        params = attributes.first
+        options = options.merge(params) if params.is_a?(Hash)
         importer_value(:csv_params, options)
       end
 

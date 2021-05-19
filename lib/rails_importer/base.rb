@@ -14,7 +14,8 @@ module RailsImporter
           if file.respond_to?(:path)
             ext = (File.extname(file.path)[1..-1] rescue '')
             if self.file_types.include?(ext.to_sym)
-              rows = self.send('import_from_%s' % ext, file, context, custom_fields)
+              custom_params = params_from_args(ext, args)
+              rows = self.send('import_from_%s' % ext, file, context, custom_fields, params: custom_params)
               if rows.present? && rows.is_a?(Array)
                 result = rows.map do |record|
                   self.importers[context][:each_record].call(record, *args) if self.importers[context][:each_record].is_a?(Proc)
@@ -30,6 +31,15 @@ module RailsImporter
           result = e.message
         end
         result
+      end
+
+      def params_from_args(ext, args)
+        case ext.to_s.to_sym
+        when :csv
+          args.try(:csv_params)
+        else
+          nil
+        end
       end
 
       def file_types
@@ -57,12 +67,16 @@ module RailsImporter
         importer_value(:xml_structure, attributes)
       end
 
+      def csv_params(params=nil)
+        importer_value(:csv_params, params)
+      end
+
       def each_record(&block)
         importer_value(:each_record, block)
       end
 
       private
-      def import_from_csv(file, context = :default, custom_fields = :nil)
+      def import_from_csv(file, context = :default, custom_fields = :nil, params: nil)
         records = []
         line = 0
         CSV.foreach(file.path, {:headers => false, :col_sep => ';', :force_quotes => true}) do |row|
@@ -74,7 +88,7 @@ module RailsImporter
         records
       end
 
-      def import_from_xml(file, context = :default, custom_fields = :nil)
+      def import_from_xml(file, context = :default, custom_fields = :nil, params: nil)
         records = []
         xml_structure = self.importers[context][:xml_structure]
         xml = Hash.from_xml(file.read)
@@ -87,7 +101,7 @@ module RailsImporter
         records
       end
 
-      def import_from_xls(file, context = :default, custom_fields = :nil)
+      def import_from_xls(file, context = :default, custom_fields = :nil, params: nil)
         records = []
         Spreadsheet.client_encoding = 'UTF-8'
         document = Spreadsheet.open(file.path)

@@ -63,9 +63,13 @@ module RailsImporter
       end
 
       def csv_params(*attributes)
+        options = self.importers[context][:csv_params]
+        if attributes.size > 0
+          params = attributes.first 
+          options = options.merge(params) if params.is_a?(Hash)
+        end
         binding.pry
-        options.merge(headers: false)
-        importer_value(:csv_params, attributes)
+        importer_value(:csv_params, options)
       end
 
       def each_record(&block)
@@ -77,7 +81,6 @@ module RailsImporter
         records = []
         first_line = nil
         options = self.importers[context][:csv_params]
-        options.merge!()
         CSV.foreach(file.path, options.merge(headers: false)) do |row|
           # Skip headers
           if first_line.nil?

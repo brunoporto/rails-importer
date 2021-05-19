@@ -40,6 +40,7 @@ class ExampleImporter < RailsImporter::Base
   end
   
   # importer :simple do
+  #   csv_params col_sep: ';'
   #   xml_structure :root, :row
   #   fields :name, :email, :age
   #   each_record do |record, params|

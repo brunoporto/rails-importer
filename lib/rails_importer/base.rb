@@ -63,6 +63,7 @@ module RailsImporter
       end
 
       def csv_params(*attributes)
+        binding.pry
         options = self.importers[context][:csv_params]
         if attributes.size > 0
           params = attributes.first 

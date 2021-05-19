@@ -14,8 +14,7 @@ module RailsImporter
           if file.respond_to?(:path)
             ext = (File.extname(file.path)[1..-1] rescue '')
             if self.file_types.include?(ext.to_sym)
-              custom_params = params_from_args(ext, args)
-              rows = self.send('import_from_%s' % ext, file, context, custom_fields, params: custom_params)
+              rows = self.send('import_from_%s' % ext, file, context, custom_fields)
               if rows.present? && rows.is_a?(Array)
                 result = rows.map do |record|
                   self.importers[context][:each_record].call(record, *args) if self.importers[context][:each_record].is_a?(Proc)
@@ -33,15 +32,6 @@ module RailsImporter
         result
       end
 
-      def params_from_args(ext, args)
-        case ext.to_s.to_sym
-        when :csv
-          args.try(:csv_params)
-        else
-          nil
-        end
-      end
-
       def file_types
         [:csv, :xls, :xml]
       end
@@ -53,7 +43,12 @@ module RailsImporter
       # end
 
       def importer(name = :default, &block)
-        (self.importers ||= {})[name] ||= {fields: [], xml_structure: [:records, :record], each_record: nil}
+        (self.importers ||= {})[name] ||= {
+          fields: [],
+          csv_params: [headers: false, col_sep: ',', force_quotes: true],
+          xml_structure: %i[records record],
+          each_record: nil
+        }
         @importer_name = name
         block.call if block_given?
         self.importers[name]
@@ -67,8 +62,10 @@ module RailsImporter
         importer_value(:xml_structure, attributes)
       end
 
-      def csv_params(params=nil)
-        importer_value(:csv_params, params)
+      def csv_params(*attributes)
+        binding.pry
+        options.merge(headers: false)
+        importer_value(:csv_params, attributes)
       end
 
       def each_record(&block)
@@ -76,12 +73,12 @@ module RailsImporter
       end
 
       private
-      def import_from_csv(file, context = :default, custom_fields = :nil, params: nil)
+      def import_from_csv(file, context = :default, custom_fields = :nil)
         records = []
         first_line = nil
-        csv_params = {headers: false, col_sep: ';', force_quotes: true}
-        csv_params = csv_params.merge(params) if params.present? && params.is_a?(Hash)
-        CSV.foreach(file.path, csv_params) do |row|
+        options = self.importers[context][:csv_params]
+        options.merge!()
+        CSV.foreach(file.path, options.merge(headers: false)) do |row|
           # Skip headers
           if first_line.nil?
             first_line = row
@@ -92,7 +89,7 @@ module RailsImporter
         records
       end
 
-      def import_from_xml(file, context = :default, custom_fields = :nil, params: nil)
+      def import_from_xml(file, context = :default, custom_fields = :nil)
         records = []
         xml_structure = self.importers[context][:xml_structure]
         xml = Hash.from_xml(file.read)
@@ -105,7 +102,7 @@ module RailsImporter
         records
       end
 
-      def import_from_xls(file, context = :default, custom_fields = :nil, params: nil)
+      def import_from_xls(file, context = :default, custom_fields = :nil)
         records = []
         Spreadsheet.client_encoding = 'UTF-8'
         document = Spreadsheet.open(file.path)

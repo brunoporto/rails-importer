@@ -45,7 +45,7 @@ module RailsImporter
       def importer(name = :default, &block)
         (self.importers ||= {})[name] ||= {
           fields: [],
-          csv_params: [headers: false, col_sep: ',', force_quotes: true],
+          csv_params: {headers: false, col_sep: ',', force_quotes: true},
           xml_structure: %i[records record],
           each_record: nil
         }
@@ -63,7 +63,7 @@ module RailsImporter
       end
 
       def csv_params(*attributes)
-        options = self.importers[@importer_name][:csv_params]
+        options = importer_value(:csv_params)
         params = attributes.first
         options = options.merge(params) if params.is_a?(Hash)
         importer_value(:csv_params, options)
